@@ -5,6 +5,8 @@
 
 <!-- badges: start -->
 [![R-CMD-check](https://github.com/manuhuth/coconots/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/manuhuth/coconots/actions/workflows/R-CMD-check.yaml)
+[![CRAN
+status](https://www.r-pkg.org/badges/version/coconots)](https://CRAN.R-project.org/package=coconots)
 [![Codecov test
 coverage](https://codecov.io/gh/manuhuth/coconots/branch/main/graph/badge.svg)](https://app.codecov.io/gh/manuhuth/coconots?branch=main)
 <!-- badges: end -->
@@ -53,12 +55,11 @@ text](https://github.com/manuhuth/coconots/blob/main/man/figures/dgp.png?raw=tru
 
 ## Installation
 
-You can install the development version of coconots from
-[GitHub](https://github.com/) with:
+You can install the latest stable version of coconots from
+[CRAN](https://cran.r-project.org/) with:
 
 ``` r
-# install.packages("devtools")
-devtools::install_github("manuhuth/coconots")
+install.packages("coconots")
 ```
 
 ## Example using RCPP implementation
@@ -81,9 +82,9 @@ coco <- cocoReg(order = 1, type = "Poisson", data = data)
 #>   as.zoo.data.frame zoo
 summary(coco)
 #> Coefficients:
-#>          Estimate   Std. Error
-#> lambda     0.9427       0.0678
-#> alpha      0.4530       0.0346
+#>          Estimate   Std. Error         t
+#> lambda     0.9427       0.0678   13.9055
+#> alpha      0.4530       0.0346   13.0806
 #> 
 #> Type: Poisson 
 #> Order: 1 
