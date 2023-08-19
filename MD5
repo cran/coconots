@@ -1,4 +1,4 @@
-52e03c01a0a1f538d7782494d0441728 *DESCRIPTION
+b8a7109686ff3de77417938f159c2b1d *DESCRIPTION
 597a9037d56c08bc666962bc91827be8 *LICENSE
 d2eec7a4e0670776c9509c9a8f7be40b *NAMESPACE
 0a0afb7bd4ca8a77f42427277a02774f *R/RcppExports.R
@@ -41,7 +41,7 @@ fbdea9988628f1ac1bfa55ac29cdeac9 *man/cocoBoot.Rd
 4173661ed3cc389b5aee14b3affa9523 *man/cocoResid.Rd
 04fe26555414e87c65a2f5d42f8182ae *man/cocoScore.Rd
 9b08588c1ceaea66f10dab86115c35c3 *man/cocoSim.Rd
-6df21dbfc598e62c5c9aab7dcd2c341d *man/coconots-package.Rd
+6848aa4ed7da3dc3702c2899003c06ce *man/coconots-package.Rd
 b3a075e7ff329eeb817dc7d87f11d1aa *man/cuts.Rd
 e8f86069a27cb636982f0a1bd857c764 *man/downloads.Rd
 b51813fc44762279cbf93ae8ca8b5170 *man/figures/README-example_assessment-1.png
