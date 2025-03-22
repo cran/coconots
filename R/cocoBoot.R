@@ -1,14 +1,16 @@
 #' @title Bootstrap Based Model Assessment Procedure
-#' @description Model checking procedure emphasizing reproducibility in fitted models to provide an overall evaluation of fit as proposed by Tsay (1992).
+#' @description Model checking procedure emphasising reproducibility in fitted models, as proposed by Tsay (1992).
 #' @param coco An object of class coco
-#' @param numb.lags Number of lags for which to compute autocorrelations
-#' @param rep.Bootstrap Number of bootstrap replicates to use
-#' @param conf.alpha Confidence level for the quantile intervals
-#' @param julia  if TRUE, the bootstrap is run with Julia.
-#' @param julia_seed Seed for the julia implementation. Only used if julia equals TRUE.
-#' @return an object of class cocoBoot. It contains the bootstraped confidence intervals
+#' @param numb.lags Number of lags for which to compute sample autocorrelations (default: 21).
+#' @param rep.Bootstrap Number of bootstrap replicates to use (default: 1000)
+#' @param conf.alpha \eqn{100(1-\code{conf.alpha})\%} probability interval for the acceptance envelopes (default: 0.05)
+#' @param julia  if TRUE, the bootstrap is run with \proglang{julia} (default: FALSE)
+#' @param julia_seed Seed for the \proglang{julia} implementation. Only used if \proglang{julia} equals TRUE
+#' @return an object of class cocoBoot. It contains the bootstrapped confidence intervals
 #' of the autocorrelations and information on the model specifications.
-#' @details Computes bootstrap confidence intervals for the autocorrelations of a fitted model. 
+#' @details Bootstrap-generated acceptance envelopes for the autocorrelation function provides an overall evaluation by comparing it with the sample autocorrelation function in a joint plot. 
+#' @importFrom forecast Acf
+#' @importFrom matrixStats rowQuantiles
 #' @references 
 #' Tsay, R. S. (1992) Model checking via parametric bootstraps in time series analysis. \emph{Applied Statistics} \bold{41}, 1--15.
 #' @examples
@@ -18,8 +20,9 @@
 #' data <- cocoSim(order = 1, type = "Poisson", par = c(lambda, alpha), length = 100)
 #' fit <- cocoReg(order = 1, type = "Poisson", data = data)
 #'
-#' #assessment using bootstrap - R implementation
+#' # bootstrap model assessment - R implementation
 #' boot_r <- cocoBoot(fit, rep.Bootstrap=400)
+#' plot(boot_r)
 #' @export
 
 cocoBoot <- function(coco, numb.lags = 21, rep.Bootstrap = 1000,
@@ -108,7 +111,7 @@ cocoBoot <- function(coco, numb.lags = 21, rep.Bootstrap = 1000,
         # set up values for lambda
         lambda <- c()
         for (j in 1:length(data)) {
-          lambda[j] <- exp(as.numeric(as.vector(xreg[j, ])) %*% vec_lambda)
+          lambda[j] <- applyLinkFunction(as.numeric(as.vector(xreg[j, ])) %*% vec_lambda, coco$link_function)
         }
       }
   
@@ -122,7 +125,7 @@ cocoBoot <- function(coco, numb.lags = 21, rep.Bootstrap = 1000,
   
         lambda <- c()
         for (j in 1:length(data)) {
-          lambda[j] <- exp(as.numeric(as.vector(xreg[j, ])) %*% vec_lambda)
+          lambda[j] <- applyLinkFunction(as.numeric(as.vector(xreg[j, ])) %*% vec_lambda, coco$link_function)
         }
       }
   
@@ -138,7 +141,7 @@ cocoBoot <- function(coco, numb.lags = 21, rep.Bootstrap = 1000,
   
         lambda <- c()
         for (j in 1:length(data)) {
-          lambda[j] <- exp(as.numeric(as.vector(xreg[j, ])) %*% vec_lambda)
+          lambda[j] <- applyLinkFunction(as.numeric(as.vector(xreg[j, ])) %*% vec_lambda, coco$link_function)
         }
       }
   
@@ -156,7 +159,7 @@ cocoBoot <- function(coco, numb.lags = 21, rep.Bootstrap = 1000,
   
         lambda <- c()
         for (j in 1:length(data)) {
-          lambda[j] <- exp(as.numeric(as.vector(xreg[j, ])) %*% vec_lambda)
+          lambda[j] <- applyLinkFunction(as.numeric(as.vector(xreg[j, ])) %*% vec_lambda, coco$link_function)
         }
       }
     }
@@ -182,7 +185,7 @@ cocoBoot <- function(coco, numb.lags = 21, rep.Bootstrap = 1000,
     if (!is.null(coco$cov)) {
       xreg <- as.matrix(xreg)
       for (b in 1:nB) {
-        help <- cocoSim(type = coco$type, order = coco$order, par = par, length = T, xreg = xreg)
+        help <- cocoSim(type = coco$type, order = coco$order, par = par, length = T, xreg = xreg, link_function=coco$link_function)
         B[, b] <- help
         ac[, b] <- forecast::Acf(help, plot = FALSE, lag.max = nlags)$acf[2:(nlags + 1)]
       }

@@ -1,8 +1,17 @@
-cocoForecastOneStep <- function(coco, max=NULL, epsilon=1e-5, xcast=NULL,
+#' @importFrom JuliaConnectoR juliaGet
+#' @importFrom utils head
+cocoForecastOneStep <- function(coco, max=NULL, epsilon=1e-12, xcast=NULL,
                                 alpha=0.05,
                          decimals = 4, julia=FALSE) {
   
   seasonality <- c(1, 2) #will be used as argument in future versions
+  
+  
+  if (!is.vector(xcast) & !is.null(xcast)){
+    if (nrow(xcast) > 1){
+      xcast <- xcast[1, ]
+    }
+  }
   
   if (is.null(max)){
     max_use <- 60
@@ -12,7 +21,11 @@ cocoForecastOneStep <- function(coco, max=NULL, epsilon=1e-5, xcast=NULL,
   
   if (!is.null(coco$julia_reg) & julia){
     addJuliaFunctions()
-    coco_forecast <- JuliaConnectoR::juliaGet( JuliaConnectoR::juliaCall("cocoPredictOneStep", coco$julia_reg, 0:max_use, xcast))
+    if ((is.matrix(xcast))) {
+      xcast <- c(xcast)
+    }
+    coco_forecast <- JuliaConnectoR::juliaGet( JuliaConnectoR::juliaCall("cocoPredictOneStep",
+                                                                         coco$julia_reg, 0:max_use, xcast))
     densities <- coco_forecast$values[[4]]
     if (is.null(max)){
       cumulative <- cumsum(densities)
@@ -32,12 +45,12 @@ cocoForecastOneStep <- function(coco, max=NULL, epsilon=1e-5, xcast=NULL,
     z <- data[length(data) - seasonality[2] + 1]
     parameter <-coco$par
     
-    if ( !is.null(coco$cov) ){ 
+    if ( !is.null(xcast) ){ 
       number_covariates <- ncol(coco$cov) 
       betas <- parameter[(length(parameter)-number_covariates+1):length(parameter)]
       parameter <- utils::head(parameter, -number_covariates)
       dot_product <- betas %*% c(xcast)
-      lambda <- exp(dot_product)
+      lambda <- applyLinkFunction(dot_product, coco$link_function)
       parameter <- c(lambda, parameter)
     }
     

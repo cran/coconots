@@ -1,4 +1,5 @@
-cocoSimJulia <- function(type, order, par, length, xreg){
+#' @importFrom JuliaConnectoR juliaCall
+cocoSimJulia <- function(type, order, par, length, xreg, link_function){
   addJuliaFunctions()
   
   if (is.null(xreg)){
@@ -7,5 +8,5 @@ cocoSimJulia <- function(type, order, par, length, xreg){
     par_use <- par
   }
   
-  return(JuliaConnectoR::juliaCall("cocoSim", type, order, par_use, length, xreg))
+  return(JuliaConnectoR::juliaCall("cocoSim", type, order, par_use, length, xreg, link_function))
 }

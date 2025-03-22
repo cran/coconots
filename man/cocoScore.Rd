@@ -4,21 +4,21 @@
 \alias{cocoScore}
 \title{Scoring Rule Based Model Assessment Procedure}
 \usage{
-cocoScore(coco, val.num = 1e-10, julia = FALSE)
+cocoScore(coco, max_x = 50, julia = FALSE)
 }
 \arguments{
 \item{coco}{An object of class coco}
 
-\item{val.num}{A non-negative real number which is used to stop the calculation
-of the score in case of GP models. The default value is 1e-10}
+\item{max_x}{An integer which is used as the maximum count for the computation
+of the score (default: `50`)}
 
-\item{julia}{if TRUE, the scores are computed with Julia.}
+\item{julia}{if TRUE, the scores are computed with \proglang{julia} (default: FALSE).}
 }
 \value{
 a list containing the log score, quadratic score and ranked probability score.
 }
 \description{
-The function calculates the log, quadratic and ranked probability scores for assessing relative performance of a fitted model as proposed by Czado et al. (2009).
+The function computes log, quadratic and ranked probability scores for assessing relative performance of a fitted model.
 }
 \details{
 Scoring rules assign a numerical score based on the predictive
@@ -30,8 +30,8 @@ rules and, unless there is a unique and clearly defined underlying decision prob
 there is no automatic choice of a (proper) scoring rule to be used in any given situation.
 Therefore, the use of a variety of scoring rules may be appropriate to take advantage of
 specific emphases and strengths. Three proper scoring rules
-(for a definition of the concept of propriety see Gneiting and Raftery, 2007)
-which Jung, McCabe and Tremayne (2016) found to be particularly useful are implemented.
+(for a definition of the concept of propriety see Gneiting and Raftery, 2007),
+which Jung, McCabe and Tremayne (2016) found to be particularly useful, are implemented.
 For more information see the references listed below.
 }
 \examples{
@@ -39,24 +39,22 @@ lambda <- 1
 alpha <- 0.4
 set.seed(12345)
 data <- cocoSim(order = 1, type = "Poisson", par = c(lambda, alpha), length = 100)
-#julia_installed = TRUE ensures that the fit object
-#is compatible with the julia cocoScore implementation 
 fit <- cocoReg(order = 1, type = "Poisson", data = data)
 
-#assessment using scoring rules - R implementation
+# scoring rules - R implementation
 score_r <- cocoScore(fit)
 }
 \references{
-Czado, C. and Gneitling, T. and Held, L. (2009) Predictive Model Assessment for Count Data. \emph{Biometrics}, \bold{65}, 4, 1254--1261.
+Czado, C. and Gneitling, T. and Held, L. (2009) Predictive Model Assessment for Count Data. \emph{Biometrics}, \bold{65},  1254--1261.
 
 Gneiting, T. and Raftery, A. E. (2007) Strictly proper scoring rules, prediction, and estimation. \emph{Journal
 of the American Statistical Association}, 102:359-378.
 
-Jung, Robert C., Brendan P. M. McCabe, and Andrew R. Tremayne. (2016). Model validation and diagnostics. \emph{In Handbook of Discrete
-Valued Time Series}. Edited by Richard A. Davis, Scott H. Holan, Robert Lund and Nalini Ravishanker. Boca Raton: Chapman and
+Jung, R. C., McCabe, B.P.M. and Tremayne, A.R. (2016). Model validation and diagnostics. \emph{In Handbook of Discrete
+Valued Time Series}. Edited by Davis, R.A., Holan, S.H., Lund, R. and Ravishanker, N.. Boca Raton: Chapman and
 Hall, pp. 189--218.
 
-Jung, R. C. and Tremayne, A. R. (2011) Convolution-closed models for count timeseries with applications. \emph{Journal of Time Series Analysis}, \bold{32}, 3, 268--280.
+Jung, R. C. and Tremayne, A. R. (2011) Convolution-closed models for count time series with applications. \emph{Journal of Time Series Analysis}, \bold{32}, 268--280.
 }
 \author{
 Manuel Huth

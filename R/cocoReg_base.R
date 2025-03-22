@@ -1,8 +1,12 @@
+#' @importFrom forecast Acf
+#' @importFrom stats glm lm constrOptim optim var na.omit
+#' @importFrom JuliaConnectoR juliaCall
+#' @importFrom numDeriv grad hessian
 cocoReg_base <- function(type, order, data, seasonality = c(1, 2), #mu = 1e-4, outer.it = 500, outer.eps = 1e-10,
                          method_optim=method_optim,
                          optim_control = FALSE, constrained.optim = TRUE, start = NULL,
                          start.val.adjust = TRUE, replace.start.val = 1e-5,
-                         iteration.start.val = 0.99, method.hessian = "Richardson", julia_installed=FALSE, ...) {
+                         iteration.start.val = 0.99, method.hessian = "Richardson", julia_installed=FALSE, link_function="log", ...) {
   start_time <- Sys.time()
 
   if (replace.start.val <= 0) {
@@ -161,7 +165,7 @@ cocoReg_base <- function(type, order, data, seasonality = c(1, 2), #mu = 1e-4, o
       
       if (julia_installed) {
         addJuliaFunctions()
-        julia_reg <- JuliaConnectoR::juliaCall("create_julia_dict", 
+        julia_reg <- JuliaConnectoR::juliaCall("Coconots.create_julia_dict", 
                                                list("parameter", "covariance_matrix", "log_likelihood",
                                                     "type", "order", "data", "covariates",
                                                     "link", "starting_values", "optimizer", 
@@ -169,7 +173,7 @@ cocoReg_base <- function(type, order, data, seasonality = c(1, 2), #mu = 1e-4, o
                                                     "max_loop"),
                                                list(pars_julia, inv_hes, likelihood,
                                                     type, order, data, NULL,
-                                                    NULL, NULL, NULL, NULL, NULL,
+                                                    link_function, NULL, NULL, NULL, NULL,
                                                     NULL, NULL))
       } else {julia_reg = NULL}
 
@@ -313,7 +317,7 @@ cocoReg_base <- function(type, order, data, seasonality = c(1, 2), #mu = 1e-4, o
       
       if (julia_installed) {
         addJuliaFunctions()
-        julia_reg <- JuliaConnectoR::juliaCall("create_julia_dict", 
+        julia_reg <- JuliaConnectoR::juliaCall("Coconots.create_julia_dict", 
                                                list("parameter", "covariance_matrix", "log_likelihood",
                                                     "type", "order", "data", "covariates",
                                                     "link", "starting_values", "optimizer", 
@@ -321,7 +325,7 @@ cocoReg_base <- function(type, order, data, seasonality = c(1, 2), #mu = 1e-4, o
                                                     "max_loop"),
                                                list(pars_julia, inv_hes, likelihood,
                                                     type, order, data, NULL,
-                                                    NULL, NULL, NULL, NULL, NULL,
+                                                    link_function, NULL, NULL, NULL, NULL,
                                                     NULL, NULL))
       } else {julia_reg = NULL}
       
@@ -503,7 +507,7 @@ cocoReg_base <- function(type, order, data, seasonality = c(1, 2), #mu = 1e-4, o
       
       if (julia_installed) {
         addJuliaFunctions()
-        julia_reg <- JuliaConnectoR::juliaCall("create_julia_dict", 
+        julia_reg <- JuliaConnectoR::juliaCall("Coconots.create_julia_dict", 
                                                list("parameter", "covariance_matrix", "log_likelihood",
                                                     "type", "order", "data", "covariates",
                                                     "link", "starting_values", "optimizer", 
@@ -511,7 +515,7 @@ cocoReg_base <- function(type, order, data, seasonality = c(1, 2), #mu = 1e-4, o
                                                     "max_loop"),
                                                list(pars_julia, inv_hes, likelihood,
                                                     type, order, data, NULL,
-                                                    NULL, NULL, NULL, NULL, NULL,
+                                                    link_function, NULL, NULL, NULL, NULL,
                                                     NULL, NULL))
       } else {julia_reg = NULL}
       
@@ -714,7 +718,7 @@ cocoReg_base <- function(type, order, data, seasonality = c(1, 2), #mu = 1e-4, o
       pars_julia <- c(pars[2:length(pars)], pars[1])
       if (julia_installed) {
         addJuliaFunctions()
-        julia_reg <- JuliaConnectoR::juliaCall("create_julia_dict", 
+        julia_reg <- JuliaConnectoR::juliaCall("Coconots.create_julia_dict", 
                                                list("parameter", "covariance_matrix", "log_likelihood",
                                                     "type", "order", "data", "covariates",
                                                     "link", "starting_values", "optimizer", 
@@ -722,7 +726,7 @@ cocoReg_base <- function(type, order, data, seasonality = c(1, 2), #mu = 1e-4, o
                                                     "max_loop"),
                                                list(pars_julia, inv_hes, likelihood,
                                                     type, order, data, NULL,
-                                                    NULL, NULL, NULL, NULL, NULL,
+                                                    link_function, NULL, NULL, NULL, NULL,
                                                     NULL, NULL))
       } else {julia_reg = NULL}
     

@@ -4,11 +4,11 @@
 #' fitted model as proposed by Czado et al. (2009).
 #' @param coco An object of class coco
 #' @param J Number of bins for the histogram (default: 10)
-#' @param conf.alpha Confidence level for the confidence bands.
-#' @param julia  if TRUE, the PIT is computed with Julia.
-#' @return an object of class cocoPit. It contains the The probability integral
-#' transform values, its p-values and information on the model specifications.
-#' @details The adequacy of a distributional assumption for a model is checked by
+#' @param conf.alpha Significance level for the confidence intervals (default: 0.05)
+#' @param julia  if TRUE, the PIT is computed with \proglang{julia} (default: FALSE)
+#' @return an object of class cocoPit. It contains the probability integral
+#' transform values,  p-value of the chi-square goodness of fit test and information on the model specifications.
+#' @details The adequacy of a distributional assumption for a model is assessed by
 #' checking the cumulative non-randomized PIT distribution for uniformity.
 #' A useful graphical device is the PIT histogram, which displays this
 #' distribution to J equally spaced bins. We supplement the graph by
@@ -17,11 +17,14 @@
 #' the J bins of the histogram are drawn from a uniform distribution.
 #' For details, see Jung, McCabe and Tremayne (2016).
 #' 
+#' @importFrom stats pchisq
+#' @importFrom stats qchisq
+#' 
 #' @references 
 #' Czado, C., Gneiting, T. and Held, L. (2009) Predictive model assessment for count data. \emph{Biometrics} \bold{65}, 1254--61.
 #' 
-#' Jung, Robert C., Brendan P. M. McCabe, and Andrew R. Tremayne. (2016). Model validation and diagnostics. \emph{In Handbook of Discrete
-#' Valued Time Series}. Edited by Richard A. Davis, Scott H. Holan, Robert Lund and Nalini Ravishanker. Boca Raton: Chapman and
+#' Jung, R. C., McCabe, B.P.M. and Tremayne, A.R. (2016). Model validation and diagnostics. \emph{In Handbook of Discrete
+#' Valued Time Series}. Edited by Davis, R.A., Holan, S.H., Lund, R. and Ravishanker, N.. Boca Raton: Chapman and
 #' Hall, pp. 189--218.
 #' 
 #' Jung, R. C. and Tremayne, A. R. (2011) Convolution-closed models for count time series with applications. \emph{Journal of Time Series Analysis}, \bold{32}, 3, 268--280.
@@ -31,12 +34,11 @@
 #' alpha <- 0.4
 #' set.seed(12345)
 #' data <- cocoSim(order = 1, type = "Poisson", par = c(lambda, alpha), length = 100)
-#' #julia_installed = TRUE ensures that the fit object
-#' #is compatible with the julia cocoPit implementation 
 #' fit <- cocoReg(order = 1, type = "Poisson", data = data)
 #'
 #' #PIT R implementation
 #' pit_r <- cocoPit(fit)
+#' plot(pit_r)
 #' @export
 
 cocoPit <- function(coco, J = 10, conf.alpha = 0.05, julia=FALSE) {
@@ -50,7 +52,7 @@ cocoPit <- function(coco, J = 10, conf.alpha = 0.05, julia=FALSE) {
   if (!is.null(coco$julia_reg) & julia){
     data <- coco$ts
     addJuliaFunctions()
-    coco_pit <- JuliaConnectoR::juliaGet( JuliaConnectoR::juliaCall("cocoPit", coco$julia_reg,J))
+    coco_pit <- JuliaConnectoR::juliaGet( JuliaConnectoR::juliaCall("cocoPit", coco$julia_reg, J))
     J_test <- J
     u <- coco_pit$values[[2]]
     d <- coco_pit$values[[1]]
@@ -111,7 +113,7 @@ cocoPit <- function(coco, J = 10, conf.alpha = 0.05, julia=FALSE) {
       # set up values for lambda
       lambda <- c()
       for (j in 1:length(data)) {
-        lambda[j] <- exp(as.numeric(as.vector(xreg[j, ])) %*% vec_lambda)
+        lambda[j] <- applyLinkFunction(as.numeric(as.vector(xreg[j, ])) %*% vec_lambda, coco$link_function)
       }
     }
 
@@ -126,7 +128,7 @@ cocoPit <- function(coco, J = 10, conf.alpha = 0.05, julia=FALSE) {
 
       lambda <- c()
       for (j in 1:length(data)) {
-        lambda[j] <- exp(as.numeric(as.vector(xreg[j, ])) %*% vec_lambda)
+        lambda[j] <- applyLinkFunction(as.numeric(as.vector(xreg[j, ])) %*% vec_lambda, coco$link_function)
       }
     }
 
@@ -142,7 +144,7 @@ cocoPit <- function(coco, J = 10, conf.alpha = 0.05, julia=FALSE) {
 
       lambda <- c()
       for (j in 1:length(data)) {
-        lambda[j] <- exp(as.numeric(as.vector(xreg[j, ])) %*% vec_lambda)
+        lambda[j] <- applyLinkFunction(as.numeric(as.vector(xreg[j, ])) %*% vec_lambda, coco$link_function)
       }
     }
 
@@ -160,7 +162,7 @@ cocoPit <- function(coco, J = 10, conf.alpha = 0.05, julia=FALSE) {
 
       lambda <- c()
       for (j in 1:length(data)) {
-        lambda[j] <- exp(as.numeric(as.vector(xreg[j, ])) %*% vec_lambda)
+        lambda[j] <- applyLinkFunction(as.numeric(as.vector(xreg[j, ])) %*% vec_lambda, coco$link_function)
       }
     }
   }
