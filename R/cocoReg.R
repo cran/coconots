@@ -1,6 +1,6 @@
-#' @title cocoReg
+#' @title Fitting First- and Second Order (G)PAR Models 
 #' @description The function fits first- and second-order (Generalized) Poisson
-#' integer autoregressive [(G)PAR] time series models for count data as discussed in Jung and Tremayne (2011). Autoregressive dependence on past counts is modeled using a special random operator that preserves integer values and, through closure under convolution, ensures that the marginal distribution remains within the same family as the innovations.
+#' integer autoregressive \code{(G)PAR} time series models for count data as discussed in Jung and Tremayne (2011). Autoregressive dependence on past counts is modeled using a special random operator that preserves integer values and, through closure under convolution, ensures that the marginal distribution remains within the same family as the innovations.
 #'
 #' These models can be viewed as stationary finite-order Markov chains, where the innovation distribution can be either Poisson or Generalized Poisson, the latter accounting for overdispersion. Estimation is performed via maximum likelihood, with an option to impose linear constraints. Without constraints, parameters may fall outside the theoretically feasible space, but optimization may be faster.
 #'
@@ -21,7 +21,9 @@
 #' @param julia if TRUE, the model is estimated with \proglang{julia}. This can improve computational speed significantly since \proglang{julia} makes use of derivatives using autodiff. In this case, only \code{type}, \code{order}, \code{data}, \code{xreg}, and \code{start} are used as other inputs (default: FALSE).
 #' @param julia_installed if TRUE, the model \proglang{R} output will contain a \proglang{julia} compatible output element.
 #' @param link_function Specifies the link function for the conditional mean of the innovation (\eqn{\lambda}). The default is `log`, but other available options include `identity` and `relu`. This parameter is applicable only when covariates are used. Note that using the `identity` link function may result in \eqn{\lambda} becoming negative. To prevent this, ensure all covariates are positive and restrict the parameter \eqn{\beta} to positive values by setting `b.beta` to a small positive value.
-#' @importFrom JuliaConnectoR juliaGet
+#' @importFrom JuliaConnectoR juliaGet juliaLet
+#' @importFrom stats nobs rstandard vcov coef residuals fitted extractAIC logLik
+#' @importFrom ggplot2 autoplot
 #' @author Manuel Huth
 #' @return an object of class coco. It contains the parameter estimates, standard errors, the log-likelihood, 
 #' and information on the model specifications. If \proglang{julia} is used for parameter estimation or the \proglang{julia} installation
@@ -88,7 +90,6 @@
 #' data <- cocoSim(order = 1, type = "Poisson", par = par, xreg = cov, length = length)
 #' fit <- cocoReg(order = 1, type = "Poisson", data = data, xreg = cov)
 #' @export
-
 cocoReg <- function(type, order, data, xreg = NULL, 
                     constrained.optim = TRUE, b.beta = -10,
                     start = NULL, start.val.adjust = TRUE, method_optim = "Nelder-Mead",
@@ -105,20 +106,29 @@ cocoReg <- function(type, order, data, xreg = NULL,
     start_time <- Sys.time()
     fit_julia <- cocoRegJulia(type, order, data, xreg, start, link_function, b.beta)
     end_time <- Sys.time()
-    fit_R <- JuliaConnectoR::juliaGet(fit_julia)
+    
+    JuliaConnectoR::juliaLet("global fit2 = x", x=fit_julia)
+    fit_no_optimization_in_dict <- juliaEval('
+               delete!(fit2, "optimization")
+               ')
+    
+    fit_R <- JuliaConnectoR::juliaGet(fit_no_optimization_in_dict)
+
     julia_out <- transformJuliaRegOutputToR(xreg=xreg, pars=fit_R[["values"]][[8]],
                                             grad=NULL, hes=NULL,
                                             inv_hes=fit_R[["values"]][[7]],
-                                            se=fit_R[["values"]][[11]],
+                                            se=fit_R[["values"]][[10]],
                                             data=data,
                                             type=type,
                                             order=order,
                                             likelihood=fit_R[["values"]][[1]],
                                             end_time = end_time,
                                             start_time=start_time, 
-                                            julia_reg=fit_julia)
+                                            julia_reg=fit_no_optimization_in_dict)
+
     class(julia_out) <- "coco"
     julia_out$link_function <- link_function
+
     return(julia_out)
   }
   
@@ -142,4 +152,307 @@ cocoReg <- function(type, order, data, xreg = NULL,
   class(output) <- "coco"
   
   return(output)
+}
+
+#' @exportS3Method
+summary.coco <- function(object, ..., score = FALSE) {
+  # Attach score flag to the object and set the class to "summary.coco"
+  object$score <- score
+  class(object) <- "summary.coco"
+  return(object)
+}
+
+#' @exportS3Method
+print.summary.coco <- function(x, ...) {
+  coco <- x
+  
+  # Create data vectors with rounded values
+  estimates <- round(coco$par, 4)
+  se_values <- round(coco$se, 4)
+  t_values <- round(coco$par / coco$se, 4)
+  
+  # Combine into a data frame for display
+  df <- data.frame("Estimate" = estimates,
+                   "Std. Error" = se_values,
+                   "t" = t_values)
+  
+  # Generate parameter names based on model order and type
+  if (coco$order == 1) {
+    if (coco$type == "Poisson") {
+      param_names <- c("lambda", "alpha")
+    } else if (coco$type == "GP") {
+      param_names <- c("lambda", "alpha", "eta")
+    } else {
+      param_names <- character(0)
+    }
+  } else if (coco$order == 2) {
+    if (coco$type == "Poisson") {
+      param_names <- c("lambda", "alpha1", "alpha2", "alpha3")
+    } else if (coco$type == "GP") {
+      param_names <- c("lambda", "alpha1", "alpha2", "alpha3", "eta")
+    } else {
+      param_names <- character(0)
+    }
+  } else {
+    param_names <- character(0)
+  }
+  
+  # Append covariate names if they exist
+  if (!is.null(coco$cov)) {
+    if (is.null(colnames(coco$cov))) {
+      colnames(coco$cov) <- paste0("X", seq_len(ncol(coco$cov)))
+    }
+    # Remove "lambda" from the initial parameters and add covariate names
+    param_names <- c(param_names[param_names != "lambda"], colnames(coco$cov))
+  }
+  
+  # Set the row names of the coefficients dataframe
+  rownames(df) <- param_names
+  
+  cat("Coefficients:\n")
+  print(df, print.gap = 3, quote = FALSE, na.print = "")
+  
+  # Check if Julia regression flag is set
+  julia <- !is.null(coco$julia_reg)
+  
+  # Build the output string with basic model statistics
+  output_lines <- paste0(
+    "\nType: ", coco$type,
+    "\nOrder: ", coco$order,
+    "\n\nLog-likelihood: ", round(coco$likelihood, 4)
+  )
+  
+  if (isTRUE(coco$score)) {
+    # When score flag is true, compute the additional scores
+    score_vals <- cocoScore(coco, julia = julia)
+    output_lines <- paste0(
+      output_lines,
+      "\nLogarithmic score: ", round(score_vals$log.score, 4),
+      "\nQuadratic score: ", round(score_vals$quad.score, 4),
+      "\nRanked probability score: ", round(score_vals$rps.score, 4),
+      "\nAIC: ", round(score_vals$aic, 4),
+      "\nBIC: ", round(score_vals$bic, 4)
+    )
+  } else {
+    # Calculate AIC and BIC using the default formulas
+    aic_value <- round(2 * length(coco$par) - 2 * coco$likelihood, 4)
+    bic_value <- round(length(coco$par) * log(length(coco$ts)) - 2 * coco$likelihood, 4)
+    output_lines <- paste0(
+      output_lines,
+      "\nAIC: ", aic_value,
+      "\nBIC: ", bic_value
+    )
+  }
+  
+  cat(output_lines, "\n")
+}
+
+#' @exportS3Method
+print.coco <- function(x, ...) {
+  # Title and basic model information
+  cat("Fitted coco Model\n")
+  cat("====================================\n")
+  cat("Type: ", x$type, "\n", sep = "")
+  cat("Order: ", x$order, "\n", sep = "")
+  cat("Link Function: ", x$link_function, "\n", sep = "")
+  
+  # Coefficient information (with names assigned via coef.coco)
+  cat("\nCoefficients:\n")
+  print(coef(x))
+  
+  # Log-likelihood
+  cat("\nLog-likelihood: ", round(x$likelihood, 4), "\n", sep = "")
+  
+  # Duration of model estimation (if available)
+  if(!is.null(x$duration)) {
+    cat("Duration (seconds): ", as.numeric(x$duration), "\n", sep = "")
+  }
+  
+  # Covariate information (if available)
+  if(!is.null(x$cov)) {
+    cov_names <- colnames(x$cov)
+    if(is.null(cov_names)) {
+      cov_names <- paste0("X", seq_len(ncol(x$cov)))
+    }
+    cat("Covariates: ", paste(cov_names, collapse = ", "), "\n")
+  }
+  
+  invisible(x)
+}
+
+#' @exportS3Method
+fitted.coco <- function(object, ...) {
+  # Compute the residuals (fitted values, residuals, and other diagnostics)
+  res <- cocoResid(object, ...)
+  # Return only the fitted values
+  res$fitted
+}
+
+#' @exportS3Method
+residuals.coco <- function(object, ...) {
+  res <- cocoResid(object, ...)
+  res$residuals
+}
+
+#' @exportS3Method
+coef.coco <- function(object, ...) {
+  params <- object$par
+  names(params) <- get_coco_param_names(object)
+  params
+}
+
+
+#' @exportS3Method
+vcov.coco <- function(object, ...) {
+  if (!is.null(object[["inv hessian"]])) {
+    V <- object[["inv hessian"]]
+  } else {
+    stop("Covariance matrix not available for this object")
+  }
+  
+  param_names <- get_coco_param_names(object)
+  rownames(V) <- param_names
+  colnames(V) <- param_names
+  V
+}
+
+#' @exportS3Method
+rstandard.coco <- function(model, ...) {
+  res <- cocoResid(model, ...)
+  res$pe.resid
+}
+
+#' @exportS3Method
+nobs.coco <- function(object, ...) {
+  length(object$ts)
+}
+
+#' @exportS3Method
+extractAIC.coco <- function(fit, scale = 0, k = 2, ...) {
+  df <- length(fit$par)
+  aic_value <- -2 * fit$likelihood + k * df
+  c(df, aic_value)
+}
+
+#' @exportS3Method
+logLik.coco <- function(object, ...) {
+  object$likelihood
+}
+
+get_coco_param_names <- function(object) {
+  # Define parameter names based on the model order and type.
+  if (object$order == 1) {
+    if (object$type == "Poisson") {
+      param_names <- c("lambda", "alpha")
+    } else if (object$type == "GP") {
+      param_names <- c("lambda", "alpha", "eta")
+    } else {
+      param_names <- character(0)
+    }
+  } else if (object$order == 2) {
+    if (object$type == "Poisson") {
+      param_names <- c("lambda", "alpha1", "alpha2", "alpha3")
+    } else if (object$type == "GP") {
+      param_names <- c("lambda", "alpha1", "alpha2", "alpha3", "eta")
+    } else {
+      param_names <- character(0)
+    }
+  } else {
+    param_names <- character(0)
+  }
+  
+  # If covariates are included, remove "lambda" and append the covariate names.
+  if (!is.null(object$cov)) {
+    if (is.null(colnames(object$cov))) {
+      colnames(object$cov) <- paste0("X", seq_len(ncol(object$cov)))
+    }
+    param_names <- c(param_names[param_names != "lambda"], colnames(object$cov))
+  }
+  
+  param_names
+}
+
+#' @exportS3Method
+autoplot.coco <- function(object, which = "fitted", ...) {
+  # Ensure ggplot2 namespace is loaded
+  if (!requireNamespace("ggplot2", quietly = TRUE)) {
+    stop("Package 'ggplot2' is required for this function to work")
+  }
+  
+  # Calculate fitted values and residuals using your internal function.
+  resid_out <- cocoResid(object, ...)
+  ts_obs <- object$ts
+  # Generate a time index; note that fitted values and residuals are computed for observations
+  # starting at index (order + 1)
+  time_index <- seq_along(ts_obs)
+  valid_index <- time_index[(object$order + 1):length(ts_obs)]
+  
+  if (which == "fitted") {
+    # Create a data frame for plotting the observed and fitted values.
+    df <- data.frame(Time = valid_index,
+                     Observed = ts_obs[(object$order + 1):length(ts_obs)],
+                     Fitted = resid_out$fitted)
+    
+    p <- ggplot2::ggplot(df, ggplot2::aes(x = Time)) +
+      ggplot2::geom_line(ggplot2::aes(y = Observed), color = "black") +
+      ggplot2::geom_line(ggplot2::aes(y = Fitted), color = "steelblue", linetype = "dashed") +
+      ggplot2::labs(title = "Observed vs. Fitted Values",
+                    y = "Count") +
+      ggplot2::theme_bw()
+    
+    return(p)
+    
+  } else if (which == "residuals") {
+    # Plot the standardized (Pearson) residuals over time.
+    df <- data.frame(Time = valid_index,
+                     Residuals = resid_out$pe.resid)
+    
+    p <- ggplot2::ggplot(df, ggplot2::aes(x = Time, y = Residuals)) +
+      ggplot2::geom_line(color = "black") +
+      ggplot2::labs(title = "Pearson Residuals",
+                    y = "Pearson Residual") +
+      ggplot2::theme_bw()
+    
+    return(p)
+    
+  } else if (which == "acf") {
+    # Create an ACF plot of the standardized residuals.
+    acf_obj <- stats::acf(resid_out$pe.resid, plot = FALSE)
+    df <- data.frame(Lag = as.numeric(acf_obj$lag),
+                     ACF = acf_obj$acf)
+    
+    p <- ggplot2::ggplot(df, ggplot2::aes(x = Lag, y = ACF)) +
+      ggplot2::geom_hline(yintercept = 0, linetype = "dashed") +
+      ggplot2::geom_bar(stat = "identity", fill = "steelblue") +
+      ggplot2::labs(title = "ACF of Pearson Residuals") +
+      ggplot2::theme_bw()
+    
+    return(p)
+    
+  } else {
+    stop("Invalid 'which' argument. Choose from 'fitted', 'residuals', or 'acf'.")
+  }
+}
+
+#' @exportS3Method
+plot.coco <- function(x, interactive = TRUE, ...) {
+  
+  if (interactive) {
+    # Display the standardized residuals plot first.
+    p_resid <- autoplot.coco(x, which = "residuals", ...)
+    print(p_resid)
+    
+    # Wait for user input before continuing.
+    readline(prompt = "Press Enter to view the ACF plot...")
+    
+    # Now display the ACF plot of the standardized residuals.
+    p_acf <- autoplot.coco(x, which = "acf", ...)
+    print(p_acf)
+    
+  } else {
+    # For non-interactive usage, default to a single plot.
+    # For example, the observed vs. fitted plot.
+    p <- autoplot.coco(x, which = "acf", ...)
+    print(p)
+  }
 }
