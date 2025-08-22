@@ -1,4 +1,4 @@
-98fa93e85b8d7a9ee962739baebc4195 *DESCRIPTION
+6f46fccf59fac73a45c2b37a9f7f4860 *DESCRIPTION
 597a9037d56c08bc666962bc91827be8 *LICENSE
 4e03d1bfc126cc580bed1780f4b2c150 *NAMESPACE
 7912c63eab27129bdfbbaa6fdfb523ce *NEWS.md
@@ -10,13 +10,13 @@ a8ca46e936c552e337772c93f507ae45 *R/RcppExports.R
 37848d5da8da31bd73f467db9afc6f6e *R/cocoForecastKStepsRCPP.R
 710295f50bdc937d952803e9660d5f42 *R/cocoForecastOneStep.R
 13884a6dfa2d7d2047a2ecd1ee372cd7 *R/cocoPit.R
-dc64a0ac04c511111600e718f3bdffe3 *R/cocoReg.R
+e0e18651d474cc034281b4e74a7b0cc0 *R/cocoReg.R
 7a31799d9b4f438016e2f2bb7d5bb0a1 *R/cocoRegJulia.R
 551453c3e539280c24b939cd8ec719ef *R/cocoReg_base.R
 b1742c05edb7371995c9f3756e112a3b *R/cocoReg_cov.R
 ce7571d9f909ab6853846f31ee90c89d *R/cocoResid.R
 bae3f2ee7117d8e466d71ee7aaac215a *R/cocoScore.R
-9653179839c13160c26da4c2b05e78bb *R/cocoSim.R
+a31c8d5c5f56636b08872704ec2df591 *R/cocoSim.R
 cf8040e0362d551c4ac7d1d67f2a717b *R/cocoSimJulia.R
 1486f426ecfb87209375ef6fac744e93 *R/cocoSim_base.R
 fcd5013b64d4d4cdad4ba547fd36c934 *R/cocoSim_cov.R
@@ -30,11 +30,11 @@ e539b56eb85281702c51c47c100531a4 *R/goldparticle.R
 d6d585c6dd17ea470994b5f65694fc41 *R/installJuliaPackages.R
 687a256d79153b64bae82acc189cbaf1 *R/pGP1.R
 a98a806747a275b2fcd76b684a89e0c8 *R/pGP2.R
-3acb62170423224c3a59ddb67a008419 *R/predict.coco.R
+5557cb185d1cecff5b22d44c9e3bab41 *R/predict.coco.R
 93b2a066cfcd85461f19324db0f1bada *R/rgenpois.R
 57acc9f9c0f076483fa6781567d41464 *R/setJuliaSeed.R
 8c2c157c0a4185f49f3d43c8e52b079c *R/transformJuliaRegOutputToR.R
-8594de0001917ea8b3b9160180e5af3f *R/utils.R
+4c707b6eba6e1399f137a9b90101e81f *R/utils.R
 1ee8967f7bf5c9254974919bf1ffd49b *README.md
 1bf18d9c216b8d95033f0bd2fe2906b2 *build/partial.rdb
 5805fb9c5a3d7082a9cf3f28aa07342f *data/cuts.rda
@@ -45,7 +45,7 @@ d00c2577346b593a4815564fa0dfb692 *man/cocoPit.Rd
 b123602597f897a41f16e142ba6e4091 *man/cocoReg.Rd
 7e11775d263f72bca63138a25bfb56ef *man/cocoResid.Rd
 059dda4ebd3ec1bd3b0da77fc7911856 *man/cocoScore.Rd
-5509b4ae06719942c511a2b2d067727c *man/cocoSim.Rd
+8dc5c2668d5133efac72486d35a0baff *man/cocoSim.Rd
 5ed3992e099801fa784fdace0f2c02fd *man/cocoSoc.Rd
 1849f01b852ac22265c25bead1ad3d1e *man/coconots-package.Rd
 a1aeb1b27db4ca051b68aa14c4831de0 *man/cuts.Rd
